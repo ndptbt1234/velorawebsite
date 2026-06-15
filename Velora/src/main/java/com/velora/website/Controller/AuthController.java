@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -18,13 +17,16 @@ import com.velora.website.Entity.NguoiDung;
 import com.velora.website.Repository.NguoiDungRepository;
 import com.velora.website.Request.LoginRequest;
 
+import lombok.RequiredArgsConstructor; // THÊM IMPORT CỦA LOMBOK
+
 @RestController
 @RequestMapping("/api/auth")
 @CrossOrigin(origins = "http://localhost:5173")
+@RequiredArgsConstructor // SỬ DỤNG LOMBOK ĐỂ TỰ ĐỘNG TIÊM DEPENDENCY
 public class AuthController {
-    @Autowired
-    private NguoiDungRepository nguoiDungRepository;
-    
+
+    // ĐÃ BỎ @Autowired VÀ THÊM final
+    private final NguoiDungRepository nguoiDungRepository;
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
