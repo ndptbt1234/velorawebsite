@@ -2,6 +2,7 @@ package com.velora.website.Controller;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,7 +16,7 @@ import com.velora.website.Repository.ThuongHieuRepository;
 @RequestMapping("/api/thuong-hieu")
 @CrossOrigin("*") // Mở CORS để Vue tải được dữ liệu
 public class ThuongHieuController {
-
+    @Autowired
     private ThuongHieuRepository thuongHieuRepository;
 
     @GetMapping
