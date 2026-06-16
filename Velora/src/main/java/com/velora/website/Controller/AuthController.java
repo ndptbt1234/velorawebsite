@@ -17,15 +17,14 @@ import com.velora.website.Entity.NguoiDung;
 import com.velora.website.Repository.NguoiDungRepository;
 import com.velora.website.Request.LoginRequest;
 
-import lombok.RequiredArgsConstructor; // THÊM IMPORT CỦA LOMBOK
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/auth")
 @CrossOrigin(origins = "http://localhost:5173")
-@RequiredArgsConstructor // SỬ DỤNG LOMBOK ĐỂ TỰ ĐỘNG TIÊM DEPENDENCY
+@RequiredArgsConstructor
 public class AuthController {
 
-    // ĐÃ BỎ @Autowired VÀ THÊM final
     private final NguoiDungRepository nguoiDungRepository;
 
     @PostMapping("/login")
@@ -36,7 +35,6 @@ public class AuthController {
         // 1. Tìm người dùng trong Database
         Optional<NguoiDung> userOpt = nguoiDungRepository.findByEmail(loginRequest.getEmail());
 
-        // Kiểm tra xem có tìm thấy user không
         if (!userOpt.isPresent()) {
             System.out.println("LỖI: Không tìm thấy email này trong DB!");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Sai email hoặc mật khẩu!");
@@ -45,7 +43,7 @@ public class AuthController {
         NguoiDung user = userOpt.get();
         System.out.println("Đã tìm thấy User: " + user.getHoTen());
 
-        // 2. So sánh mật khẩu
+        // 2. So sánh mật khẩu Bcrypt
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         boolean isMatch = encoder.matches(loginRequest.getPassword(), user.getMatKhauMaHoa());
         
@@ -53,20 +51,18 @@ public class AuthController {
 
         // 3. Xử lý khi đăng nhập thành công
         if (isMatch) {
-            // Đóng gói dữ liệu an toàn để gửi về Vue.js (KHÔNG gửi mật khẩu mã hóa)
             Map<String, Object> responseData = new HashMap<>();
             responseData.put("maNguoiDung", user.getMaNguoiDung());
             responseData.put("hoTen", user.getHoTen());
             responseData.put("email", user.getEmail());
             
-            // XỬ LÝ QUYỀN (RBAC):
-            // Tạm thời gán quyền ROLE_ADMIN cho tài khoản admin@velora.com để thông mạch giao diện Vue.js.
-            // Sau này khi cấu hình xong @ManyToMany, em sẽ query lấy List<VaiTro> từ DB đắp vào đây.
-            if ("admin@velora.com".equals(user.getEmail())) {
-                responseData.put("vaiTro", "ROLE_ADMIN");
-            } else {
-                responseData.put("vaiTro", "ROLE_CUSTOMER");
+            // 🛠️ ĐỘNG HÓA PHÂN QUYỀN TRỰC TIẾP TỪ DATABASE:
+            // Lấy vai trò đầu tiên của user trong List<VaiTro> đổ ra, nếu rỗng thì mặc định là CUSTOMER
+            String roleName = "ROLE_CUSTOMER";
+            if (user.getVaiTros() != null && !user.getVaiTros().isEmpty()) {
+                roleName = user.getVaiTros().get(0).getTenVaiTro();
             }
+            responseData.put("vaiTro", roleName);
 
             System.out.println("=> DỮ LIỆU ĐÓNG GÓI GỬI VỀ VUE.JS: " + responseData);
             return ResponseEntity.ok(responseData); 
