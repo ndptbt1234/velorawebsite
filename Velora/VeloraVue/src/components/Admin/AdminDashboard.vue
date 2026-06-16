@@ -50,7 +50,8 @@ const menuItems = [
     { name: 'Dashboard', link: '/admin/dashboard', icon: 'fa-solid fa-gauge' },
     { name: 'Products', link: '/admin/products', icon: 'fa-solid fa-box-open' },
     { name: 'Users', link: '/admin/users', icon: 'fa-solid fa-users' },
-    { name: 'Orders', link: '/admin/orders', icon: 'fa-solid fa-file-invoice' }
+    { name: 'Orders', link: '/admin/orders', icon: 'fa-solid fa-file-invoice' },
+    { name: 'Inventory', link: '/admin/inventory', icon: 'fa-solid fa-boxes-stacked' },
 ];
 
 const cards = [

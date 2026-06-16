@@ -10,7 +10,7 @@ import AdminDashboard from '../components/Admin/AdminDashboard.vue'
 import QuanLySanPham from '../components/Admin/QuanLySanPham.vue'
 import QuanLyNguoiDung from '../components/Admin/QuanLyNguoiDung.vue'
 import QuanLyDonHang from '../components/Admin/QuanLyDonHang.vue'
-
+import QuanLyKho from '../components/Admin/QuanLyKho.vue';
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -62,9 +62,14 @@ const router = createRouter({
     name: 'QLDonHang',
     component: QuanLyDonHang,
     meta: {requiresAdmin: true}
+    },
+    {
+    path: '/admin/inventory',
+    name: 'AdminInventory',
+    component: QuanLyKho
     }
-
   ]
+  
 })
 
 export default router

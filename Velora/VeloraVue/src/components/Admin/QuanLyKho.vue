@@ -19,11 +19,8 @@
         <main class="content">
             <header class="header">
                 <div class="header-left">
-                    <h1>Quản Lý <span class="gold">Sản Phẩm</span></h1>
-                    <p>Danh sách các cỗ máy thời gian hiện có trong kho.</p>
-                </div>
-                <div class="header-right">
-                    <button class="btn-add"><i class="fa-solid fa-plus"></i> Thêm Sản Phẩm Mới</button>
+                    <h1>Quản Lý <span class="gold">Kho Hàng</span></h1>
+                    <p>Cập nhật số lượng tồn kho trực tiếp và nhanh chóng.</p>
                 </div>
             </header>
 
@@ -31,40 +28,50 @@
                 <table class="admin-table">
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Hình Ảnh</th>
+                            <th style="width: 80px;">ID</th>
+                            <th style="width: 90px;">Hình Ảnh</th>
                             <th>Tên Sản Phẩm</th>
-                            <th>Giá Bán</th>
-                            <th>Tồn Kho</th>
-                            <th>Trạng Thái</th>
-                            <th>Hành Động</th>
+                            <th style="width: 140px;">Trạng Thái</th>
+                            <th style="width: 180px; text-align: center;">Tồn Kho Hiện Tại</th>
+                            <th style="width: 110px;">Hành Động</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-for="product in products" :key="product.maSanPham">
                             <td>#{{ product.maSanPham }}</td>
+                            
                             <td>
                                 <div class="img-wrapper">
                                     <img :src="getImageUrl(product.anhDaiDien)" :alt="product.tenSanPham" />
                                 </div>
                             </td>
+                            
                             <td class="product-name">{{ product.tenSanPham }}</td>
-                            <td class="price">{{ formatPrice(product.giaBan) }}</td>
-                            <td>{{ product.soLuongTonKho }}</td>
+                            
                             <td>
-                                <span class="status-badge"
-                                    :class="product.trangThai === 'CON_HANG' ? 'in-stock' : 'out-stock'">
+                                <span class="status-badge" :class="product.trangThai === 'CON_HANG' ? 'in-stock' : 'out-stock'">
                                     {{ product.trangThai === 'CON_HANG' ? 'Còn Hàng' : 'Hết Hàng' }}
                                 </span>
                             </td>
-                            <td class="actions">
-                                <button class="btn-action edit" title="Chỉnh sửa"><i
-                                        class="fa-solid fa-pen"></i></button>
-                                <button class="btn-action delete" title="Xóa"><i class="fa-solid fa-trash"></i></button>
+
+                            <td style="text-align: center;">
+                                <input 
+                                    type="number" 
+                                    v-model="product.formSoLuongMoi" 
+                                    class="form-input stock-input" 
+                                    min="0" 
+                                />
+                            </td>
+
+                            <td>
+                                <button class="btn-confirm" @click="submitCapNhatKho(product)">
+                                    <i class="fa-solid fa-floppy-disk"></i> Lưu
+                                </button>
                             </td>
                         </tr>
+
                         <tr v-if="products.length === 0">
-                            <td colspan="7" class="empty-state">Đang tải dữ liệu hoặc kho hàng trống...</td>
+                            <td colspan="6" class="empty-state">Đang tải dữ liệu hoặc kho hàng trống...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -76,38 +83,18 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 
-// Menu Sidebar
 const menuItems = [
-    { name: 'Dashboard', link: '/admin/dashboard', icon: 'fa-solid fa-gauge' },
-    { name: 'Products', link: '/admin/products', icon: 'fa-solid fa-box-open' },
-    { name: 'Users', link: '/admin/users', icon: 'fa-solid fa-users' },
-    { name: 'Orders', link: '/admin/orders', icon: 'fa-solid fa-file-invoice' },
-    { name: 'Inventory', link: '/admin/inventory', icon: 'fa-solid fa-boxes-stacked' },
+  { name: 'Dashboard', link: '/admin/dashboard', icon: 'fa-solid fa-gauge' },
+  { name: 'Products', link: '/admin/products', icon: 'fa-solid fa-box-open' },
+  { name: 'Users', link: '/admin/users', icon: 'fa-solid fa-users' },
+  { name: 'Orders', link: '/admin/orders', icon: 'fa-solid fa-file-invoice' },
+  { name: 'Inventory', link: '/admin/inventory', icon: 'fa-solid fa-boxes-stacked' },
 ];
-
 const products = ref([]);
 
-// Xử lý link ảnh (hỗ trợ cả link ngoài HTTP và ảnh Local)
 const getImageUrl = (img) => {
     if (!img) return '/img/default-watch.png';
     return img.startsWith('http') ? img : `/img/${img}`;
-};
-
-// Định dạng tiền tệ VNĐ
-const formatPrice = (value) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
-};
-
-// Gọi API lấy dữ liệu sản phẩm từ Spring Boot
-const loadProducts = async () => {
-    try {
-        const res = await fetch('http://localhost:8080/api/san-pham');
-        if (res.ok) {
-            products.value = await res.json();
-        }
-    } catch (error) {
-        console.error('Lỗi kết nối Backend:', error);
-    }
 };
 
 const handleLogout = () => {
@@ -115,14 +102,61 @@ const handleLogout = () => {
     window.location.href = '/';
 };
 
-// Chạy tự động khi trang vừa load
+// Hàm tải dữ liệu và gán số lượng cũ vào formSoLuongMoi
+const loadProducts = async () => {
+    try {
+        const res = await fetch('http://localhost:8080/api/san-pham');
+        if (res.ok) {
+            const data = await res.json();
+            products.value = data.map(p => ({
+                ...p,
+                // Lấy tồn kho thực tế làm số mặc định trong ô input
+                formSoLuongMoi: p.soLuongTonKho 
+            }));
+        }
+    } catch (error) {
+        console.error('Lỗi kết nối Backend:', error);
+    }
+};
+
+// Hàm gửi dữ liệu cập nhật xuống Backend
+const submitCapNhatKho = async (product) => {
+    // Ép kiểu chắc chắn thành số để không bị lỗi 400 Bad Request ở Spring Boot
+    const parsedSoLuong = parseInt(product.formSoLuongMoi, 10);
+
+    if (isNaN(parsedSoLuong) || parsedSoLuong < 0) {
+        alert("Vui lòng nhập một số lượng hợp lệ (không âm)!");
+        return;
+    }
+
+    try {
+        const res = await fetch(`http://localhost:8080/api/san-pham/${product.maSanPham}/cap-nhat-kho`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                soLuongMoi: parsedSoLuong
+            })
+        });
+
+        if (res.ok) {
+            alert(`Đã cập nhật tồn kho thành ${parsedSoLuong} thành công!`);
+            loadProducts(); // Load lại để đồng bộ trạng thái Còn/Hết hàng
+        } else {
+            const errorText = await res.text();
+            alert("Lỗi: " + errorText);
+        }
+    } catch (error) {
+        console.error('Lỗi khi cập nhật kho:', error);
+        alert("Lỗi kết nối máy chủ.");
+    }
+};
+
 onMounted(() => {
     loadProducts();
 });
 </script>
 
 <style scoped>
-/* ================= LAYOUT GỐC (GIỮ NGUYÊN) ================= */
 .admin-wrapper {
     display: flex;
     min-height: 100vh;
@@ -159,9 +193,9 @@ onMounted(() => {
     display: flex;
     align-items: center;
     gap: 10px;
-    transition: 0.3s;
     padding: 10px;
     border-radius: 6px;
+    transition: 0.3s;
 }
 
 .menu a:hover,
@@ -200,12 +234,11 @@ onMounted(() => {
     color: #d1aa68;
 }
 
-/* ================= TRANG QUẢN LÝ SẢN PHẨM ================= */
 .header {
+    margin-bottom: 40px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 40px;
 }
 
 .header h1 {
@@ -219,32 +252,11 @@ onMounted(() => {
     font-size: 14px;
 }
 
-.btn-add {
-    background-color: #d1aa68;
-    color: #111;
-    border: none;
-    padding: 12px 24px;
-    font-weight: bold;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.3s;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.btn-add:hover {
-    background-color: #b8955b;
-    transform: translateY(-2px);
-}
-
-/* ================= BẢNG DỮ LIỆU (TABLE) ================= */
 .table-container {
     background: #ffffff;
     border: 1px solid #e0dcd5;
     border-radius: 8px;
     overflow: hidden;
-    /* Bo góc mượt mà */
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.02);
 }
 
@@ -260,8 +272,8 @@ onMounted(() => {
     padding: 18px 20px;
     font-size: 13px;
     text-transform: uppercase;
-    letter-spacing: 1px;
     border-bottom: 2px solid #e0dcd5;
+    letter-spacing: 1px;
 }
 
 .admin-table td {
@@ -274,10 +286,8 @@ onMounted(() => {
 
 .admin-table tbody tr:hover {
     background-color: #fdfaf5;
-    /* Sáng lên nhẹ khi rê chuột */
 }
 
-/* Cột hình ảnh */
 .img-wrapper {
     width: 50px;
     height: 50px;
@@ -302,21 +312,17 @@ onMounted(() => {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    /* Cắt chữ quá dài thành dấu ... */
 }
 
-.price {
-    font-weight: bold;
-    color: #d1aa68;
-}
-
-/* Badge Trạng thái */
 .status-badge {
     padding: 6px 12px;
     border-radius: 20px;
     font-size: 11px;
     font-weight: bold;
     text-transform: uppercase;
+    display: inline-block;
+    text-align: center;
+    width: 90px;
 }
 
 .in-stock {
@@ -329,41 +335,44 @@ onMounted(() => {
     color: #c62828;
 }
 
-/* Các nút hành động */
-.actions {
-    display: flex;
-    gap: 10px;
+/* Tinh chỉnh ô input số lượng */
+.form-input.stock-input {
+    width: 100px;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: bold;
+    outline: none;
+    text-align: center;
+    color: #3e332e;
+    background: #fff;
+    transition: all 0.3s;
 }
 
-.btn-action {
-    width: 32px;
-    height: 32px;
+.form-input.stock-input:focus {
+    border-color: #d1aa68;
+    box-shadow: 0 0 5px rgba(209, 170, 104, 0.3);
+}
+
+.btn-confirm {
+    background-color: #d1aa68;
+    color: #111;
     border: none;
+    padding: 8px 14px;
+    font-weight: bold;
     border-radius: 4px;
     cursor: pointer;
+    transition: 0.2s;
     display: flex;
     align-items: center;
+    gap: 6px;
+    width: 100%;
     justify-content: center;
-    transition: all 0.2s;
 }
 
-.btn-action.edit {
-    background-color: #f4f1ea;
-    color: #3e332e;
-}
-
-.btn-action.edit:hover {
-    background-color: #d1aa68;
-    color: #fff;
-}
-
-.btn-action.delete {
-    background-color: #ffebee;
-    color: #c62828;
-}
-
-.btn-action.delete:hover {
-    background-color: #c62828;
+.btn-confirm:hover {
+    background-color: #b8955b;
     color: #fff;
 }
 
